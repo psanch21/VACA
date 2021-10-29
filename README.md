@@ -1,7 +1,7 @@
 
 #  VACA
 
-Code repository for the paper "VACA: Designing Variational Graph Autoencoders for Interventional and Counterfactual Queries ([arXiv](https://www.youtube.com/watch?v=dQw4w9WgXcQ))". 
+Code repository for the paper "VACA: Designing Variational Graph Autoencoders for Interventional and Counterfactual Queries ([arXiv](https://arxiv.org/abs/2110.14690))". 
 The implementation is based on [Pytorch](https://pytorch.org/), 
  [Pytorch Geometric](https://pytorch-geometric.readthedocs.io/en/latest/) and 
  [Pytorch Lightning](https://www.pytorchlightning.ai/). The repository contains the necessary resources to run the 
