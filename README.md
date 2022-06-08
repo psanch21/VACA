@@ -8,12 +8,6 @@ The implementation is based on [Pytorch](https://pytorch.org/),
 experiments of the paper. Follow the instructions below to download the German dataset.
 
 ## Installation
-Create conda environment and activate it:
-
-```
-conda create --name vaca python=3.9 --no-default-packages
-conda activate vaca 
-```
 
 #### Option 1: Import the conda environment
 ```
@@ -21,6 +15,13 @@ conda env create -f environment.yml
 ```
 #### Option 2: Commands
 
+Create conda environment and activate it:
+
+```
+conda create --name vaca python=3.9 --no-default-packages
+conda activate vaca 
+```
+Then install:
 
 ```
 conda install pip
