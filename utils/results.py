@@ -16,11 +16,11 @@ class ResultsManager:
     def __init__(self, root_dir, objective_mmd=False):
         self.root_dir = root_dir
 
-        self.save_dir = f"images/{root_dir.replace(os.sep, '_')}"
-        mkdir(f"images/{root_dir.replace(os.sep, '_')}")
+        self.save_dir = os.path.join('images', root_dir.replace(os.sep, '_'))
+        mkdir(self.save_dir)
 
         df_all = create_df_results(root_dir, add_time=True)
-        df_all = df_all.rename(columns={c: c.replace('/', '_') for c in df_all.columns})
+        df_all = df_all.rename(columns={c: c.replace(os.sep, '_') for c in df_all.columns})
 
         df_all['model_params_num_hidden_dec'] = df_all['model_params_h_dim_list_dec'].apply(get_number_hidden_layers)
         df_all['model_params_num_hidden_enc'] = df_all['model_params_h_dim_list_enc'].apply(get_number_hidden_layers)
@@ -48,16 +48,6 @@ class ResultsManager:
                                                    'carefl': 'CAREFL'}
                                                   )
 
-        # metrics_dict = {'IWAE 100': ['test_iwae_100'],
-        #                 'MMD Obs.': ['test_observation_mmd1'],
-        #                 'MMD Inter.': get_elements(columns_list, ['test', 'mmd', 'inter', 'children'], ['mmd1_lb']),
-        #                 'MeanE.': get_elements(columns_list, ['test', 'mse_mean', '_inter_', 'children']),
-        #                 'StdE.': get_elements(columns_list, ['test', 'mse_std', 'inter', 'children']),
-        #                 'MSE CF': get_elements(columns_list, ['test', '_cf_', 'x_mse', 'children', 'noise'], ['std']),
-        #                 'SSE CF': get_elements(columns_list, ['test', '_cf_', 'x_mse_std', 'children', 'noise']),
-        #                 'MRE CF N': get_elements(columns_list, ['test', '_cf_', 'x_mse', 'children'], ['std', 'noise']),
-        #                 'SDRE CF N': get_elements(columns_list, ['test', '_cf_', 'x_mse_std', 'children'], ['noise'])
-        #                 }
         metrics_dict = {'IWAE 100': ['test_iwae_100'],
                         'MMD Obs.': ['test_observation_mmd1'],
                         'MMD Inter.': get_elements(columns_list, ['test', 'mmd', 'inter', 'children'], ['mmd1_lb']),
@@ -208,70 +198,6 @@ class ResultsManager:
 
         self.df_best = df_best
 
-    # def load_df_best(self, safe=0, dim_z=4):
-    #     '''
-    #     we need dimension z to remove those experiments that we use for the experiments on cross validating dim(z)
-    #     '''
-    #     print('\n\nComputing best configurations for each model and SEM:')
-    #     cols = ['Model', 'Dataset', 'SEM', 'json_filename', 'num_parameters']
-    #     cols.extend(get_elements(self.columns_list, ['dataset_params']))
-    #     cols.extend(get_elements(self.columns_list, ['model_params']))
-    #     metrics_cols = list(set(list(self.objective_metric.values())))
-    #     cols.extend(metrics_cols)
-    #     cols.extend(list(self.metrics_dict.keys()))
-    #     df = self.df.copy()[cols]
-    #
-    #     df = self.filter_valid_configurations(df)
-    #
-    #     best_models_file = os.path.join(self.save_dir, 'best_models.txt')
-    #
-    #     best_models_list = []
-    #     for dataset_name, df_dataset in df.groupby('Dataset'):
-    #         for m_name, df_m in df_dataset.groupby('Model'):
-    #             print('--------')
-    #             if m_name == 'VACA':
-    #                 df_m = df_m[df_m.model_params_z_dim == dim_z]
-    #             for d_name, df_md in df_m.groupby('SEM'):
-    #                 print(f'{dataset_name} : {m_name} : {d_name}')
-    #
-    #                 with open(best_models_file, 'a') as f:
-    #                     f.write(f'{dataset_name} : {m_name} : {d_name}\n')
-    #                 df_md_g = df_md.groupby(self.cv_dict[m_name], dropna=False).agg(['mean', 'std'])[
-    #                     self.objective_metric[m_name]]
-    #
-    #                 best_config = df_md_g['mean'].idxmax()
-    #                 df_best_md = df_md.copy()
-    #
-    #                 for k, v in zip(self.cv_dict[m_name], best_config):
-    #                     with open(best_models_file, 'a') as f:
-    #                         f.write(f'\t{k}: {v}\n')
-    #                     print(f'\t{k}: {v}')
-    #                     df_best_md = df_best_md[df_best_md[k] == v]
-    #
-    #                 print(f"Num of entries: {len(df_best_md)}")
-    #                 with open(best_models_file, 'a') as f:
-    #                     best = df_best_md.loc[df_best_md[self.objective_metric[m_name]].idxmax()]
-    #                     f.write(f"\t{best['json_filename']}\n")
-    #                     f.write(f"\tnum_parameters: {best['num_parameters']}\n")
-    #                 print(df_best_md.loc[df_best_md[self.objective_metric[m_name]].idxmax()]['json_filename'])
-    #                 get_unique_parameteres(self.columns_list,
-    #                                        df_i=df_best_md,
-    #                                        type_list=['model'])
-    #
-    #                 my_mean, my_std = df_md_g.loc[best_config]
-    #                 print(f"{self.objective_metric[m_name]}: {my_mean:.3f} +- {my_std:.3f}\n")
-    #                 if safe > 0: assert len(df_best_md) >= (safe-1), f'Number of elements different from number of seeds { len(df_best_md)}'
-    #                 best_models_list.append(df_best_md)
-    #
-    #     df_best = pd.concat(best_models_list)
-    #
-    #     print('\n\nModels we are comparing:')
-    #
-    #     for m in df_best['Model'].unique():
-    #         print(f"\t{m}")
-    #
-    #     self.df_best = df_best
-
     def generate_latex_table_comparison(self, metrics_to_plot=None,
                                         include_num_params=True):
         # Table 2 in the paper
@@ -416,7 +342,6 @@ class ResultsManager:
         plt.show()
         g.savefig(os.path.join(self.save_dir, f'time_complexity_all_per_dataset.png'))
 
-        print('dagasgagsdg')
         print(df_time['Dataset'].unique())
 
         df_time = df_time.rename(columns={'train_epochs': 'Num. Epochs'})
