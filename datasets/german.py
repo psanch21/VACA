@@ -73,6 +73,9 @@ class GermanSCM(HeterogeneousSCM):
     def node_is_image(self):
         return [False, False, False, False]
 
+    def is_toy(self):
+        return False
+
     def get_attributes_dict(self):
         # TODO:  Makes this more general
         unfair_attributes = list(range(2, 16))  # R, S

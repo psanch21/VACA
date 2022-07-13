@@ -221,6 +221,9 @@ class HeterogeneousSCM(torch.utils.data.Dataset):
 
     # %% Methods
 
+    def is_toy(self):
+        return True
+
     def _get_lik(self, lik_str: str,
                  dim: int,
                  normalize):
@@ -681,6 +684,7 @@ class HeterogeneousSCM(torch.utils.data.Dataset):
         self.adj_object = Adjacency(SCM_adj)
 
     def prepare_data(self, normalize_A=None, add_self_loop=True):
+        print(f'\nPreparing data...')
         self.prepare_adj(normalize_A, add_self_loop)
         self._create_data()  # This should create X, and U
         self.X0, self.mask_X0, self.dim_of_x_in_x0 = self.fill_up_with_zeros(self.X)  # [800 x 48]

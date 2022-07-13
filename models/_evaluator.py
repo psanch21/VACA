@@ -169,6 +169,7 @@ class MyEvaluator:
     def evaluate(self, dataloader, name='test', plots=False):
 
         output = {}
+        dataset = dataloader.dataset
 
         o = self.model.get_objective_metrics(dataloader, name)
 
@@ -231,7 +232,7 @@ class MyEvaluator:
             label = '_'.join([f'{k}_{i_label}' for k, v in x_I.items()])
 
             if plots:
-                if self.model.get_data_is_toy():
+                if dataset.is_toy():
                     self.plot_obs(X_gener_dict['all'], x_real=X_real_dict['all'],
                                   label=f'{name}_intervention_{label}_gener/', iter=100000)
                 else:
