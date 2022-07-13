@@ -23,14 +23,17 @@ conda activate vaca
 ```
 Then install:
 
+
 ```
 conda install pip
-pip install torch torchvision torchaudio
-pip install pytorch-lightning
-pip install -U scikit-learn
-pip install torch-scatter torch-sparse torch-cluster torch-spline-conv torch-geometric -f https://data.pyg.org/whl/torch-1.9.0+cpu.html
-pip install matplotlib
-pip install seaborn
+pip install torch==1.10.0 torchvision==0.11.1 torchaudio==0.10.0
+pip install torch-scatter torch-sparse torch-cluster torch-spline-conv torch-geometric -f https://data.pyg.org/whl/torch-1.10.0+cpu.html
+pip install pytorch-lightning==1.4.9
+ pip install torchmetrics==0.6.2
+pip install setuptools==59.5.0
+pip install networkx==2.8.2
+pip install matplotlib==3.5.2
+pip install seaborn==0.11.2
 ```
 
 **Note**: The German dataset is not contained in this repository. The first time you try to train on the German dataset, 
@@ -73,6 +76,9 @@ dataset = create_toy_dataset(root_dir='./my_custom_datasets',
                              likelihood_names='d_d',
                              lambda_=0.05)
 ```
+
+
+For a complete example of training with a custom dataset, see the demo we included in the jupyter notebook `demo.ipynb`.
 
 ## Training
 
