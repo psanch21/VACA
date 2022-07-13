@@ -381,6 +381,60 @@ class VACA(pl.LightningModule):
         return torch.cat(z_list), torch.cat(x), torch.cat(x_real)
 
     @torch.no_grad()
+    def get_intervention(self, batch,
+                         x_I,
+                         nodes_list,
+                         return_type: str = 'sample',
+                         use_aggregated_posterior: bool = False,
+                         normalize: bool = True):
+        """
+        Get x generated distribution  w/o intervention or with diagonal adjacency.
+        Parameters
+        Args:
+            data_loader:
+            x_I:
+                If x_I is None compute the distribution of the original SCM, if x_I is a dict
+                then compute the interventional distribution. E.g. x_I = {'x1': 0} computes the
+                interventional distribution with do(x1=0)
+            use_aggregated_posterior:
+            num_batches:
+            normalize:
+
+        Returns:
+            x_gener_dict_out: dict of torch.Tensor
+                Generated distribution
+            x_real_dict_out: dict of torch.Tensor
+                distribution of the dataset (real data)
+        """
+
+        self.eval()
+
+        if use_aggregated_posterior:
+            z = self.samples_aggregated_posterior(num_samples=batch.num_graphs).to(self.device)
+        else:
+            z = self.model.z_prior_distr.sample([batch.num_nodes]).to(self.device)
+
+        z = z.view(batch.num_graphs, -1)
+
+        z_mean, _ = self.model.encoder(batch.x_i, batch.edge_index_i, edge_attr=batch.edge_attr_i,
+                                       return_mean=True, node_ids=batch.node_ids)
+        z_mean = z_mean.reshape(batch.num_graphs, -1)
+        for node_name, _ in x_I.items():
+            i = nodes_list.index(node_name)
+            z[:, self.z_dim * i:self.z_dim * (i + 1)] = z_mean[:, self.z_dim * i:self.z_dim * (i + 1)]
+
+        z = z.view(-1, self.z_dim)
+
+        x_hat, _ = self.model.decoder(z, batch.edge_index_i, edge_attr=batch.edge_attr_i,
+                                      return_type=return_type, node_ids=batch.node_ids)
+
+        x_hat = x_hat.reshape(batch.num_graphs, -1)
+        if not normalize:
+            x_hat = self.scaler.inverse_transform(x_hat)
+
+        return x_hat, z
+
+    @torch.no_grad()
     def get_interventional_distr(self, data_loader,
                                  x_I: Dict[str, float],
                                  use_aggregated_posterior: bool = False,
@@ -419,29 +473,12 @@ class VACA(pl.LightningModule):
 
         for idx, batch in enumerate(iterator):
             if isinstance(num_batches, int) and idx > num_batches: break
-            if use_aggregated_posterior:
-                z = self.samples_aggregated_posterior(num_samples=batch.num_graphs).to(self.device)
-            else:
-                z = self.model.z_prior_distr.sample([batch.num_nodes]).to(self.device)
-
-            z = z.view(batch.num_graphs, -1)
-
-            z_mean, _ = self.model.encoder(batch.x_i, batch.edge_index_i, edge_attr=batch.edge_attr_i,
-                                           return_mean=True, node_ids=batch.node_ids)
-            z_mean = z_mean.reshape(batch.num_graphs, -1)
-            for node_name, _ in data_loader.dataset.x_I.items():
-                i = data_loader.dataset.nodes_list.index(node_name)
-                z[:, self.z_dim * i:self.z_dim * (i + 1)] = z_mean[:, self.z_dim * i:self.z_dim * (i + 1)]
-
-            z = z.view(-1, self.z_dim)
-
-            x_hat, _ = self.model.decoder(z, batch.edge_index_i, edge_attr=batch.edge_attr_i,
-                                          return_type='sample', node_ids=batch.node_ids)
-
-            x_hat = x_hat.reshape(batch.num_graphs, -1)
-            if not normalize:
-                x_hat = self.scaler.inverse_transform(x_hat)
-
+            x_hat, z = self.get_intervention(batch=batch,
+                                             x_I=data_loader.dataset.x_I,
+                                             nodes_list=data_loader.dataset.nodes_list,
+                                             return_type='sample',
+                                             use_aggregated_posterior=False,
+                                             normalize=normalize)
             x_inter, set_nodes = data_loader.dataset.sample_intervention(x_I=x_I,
                                                                          n_samples=batch.num_graphs,
                                                                          return_set_nodes=True)
@@ -473,7 +510,8 @@ class VACA(pl.LightningModule):
         return x_gener_dict_out, x_real_dict_out
 
     @torch.no_grad()
-    def compute_counterfactual(self, batch, x_I, z_I):
+    def compute_counterfactual(self, batch, x_I, nodes_list, normalize,
+                               return_type='sample'):
         z_factual, _ = self.model.encoder(batch.x, batch.edge_index, edge_attr=batch.edge_attr,
                                           return_mean=True, node_ids=batch.node_ids)
 
@@ -485,18 +523,29 @@ class VACA(pl.LightningModule):
         z_cf_I = z_cf_I.reshape(batch.num_graphs, -1)
 
         # Replace z_cf of the intervened variables with z_cf_I
-        for i, _ in x_I.items():
-            z_factual[:, self.z_dim * i:self.z_dim * (i + 1)] = z_cf_I[:, self.z_dim * i:self.z_dim * (i + 1)]
-        for k, v in z_I.items():
-            z_factual[:, self.z_dim * k:self.z_dim * (k + 1)] = v
+        z_dec = z_factual.clone()
+        for node_name, _ in x_I.items():
+            i = nodes_list.index(node_name)
 
-        z_factual = z_factual.reshape(-1, self.z_dim)
+            z_dec[:, self.z_dim * i:self.z_dim * (i + 1)] = z_cf_I[:, self.z_dim * i: self.z_dim * (i + 1)]
 
-        x_CF, _ = self.model.decoder(z_factual, batch.edge_index_i, edge_attr=batch.edge_attr_i,
-                                     return_type='sample', node_ids=batch.node_ids)
+        z_dec = z_dec.reshape(-1, self.z_dim)
 
-        return x_CF.view(batch.num_graphs, -1), z_factual.reshape(batch.num_graphs, -1), z_cf_I.reshape(
-            batch.num_graphs, -1)
+        x_CF, _ = self.model.decoder(z_dec, batch.edge_index_i, edge_attr=batch.edge_attr_i,
+                                     return_type=return_type, node_ids=batch.node_ids)
+
+        # Not normalized
+        if normalize:
+            x_CF = x_CF.view(batch.num_graphs, -1)
+        else:
+            x_CF = self.scaler.inverse_transform(x_CF.view(batch.num_graphs, -1))
+
+
+        x_CF =  x_CF.view(batch.num_graphs, -1)
+        z_cf_I = z_cf_I.reshape(batch.num_graphs, -1)
+        z_dec = z_dec.reshape
+
+        return x_CF, z_factual, z_cf_I, z_dec
 
     @torch.no_grad()
     def get_counterfactual_distr(self, data_loader,
@@ -522,37 +571,14 @@ class VACA(pl.LightningModule):
 
         for idx, batch in enumerate(iterator):
             if isinstance(num_batches, int) and idx > num_batches: break
-            # Encoder pass 1 with Factual
-            z_factual, _ = self.model.encoder(batch.x, batch.edge_index, edge_attr=batch.edge_attr,
-                                              return_mean=True, node_ids=batch.node_ids)
 
-            z_factual = z_factual.reshape(batch.num_graphs, -1)
-            z_factual_dict['all'].append(z_factual.clone())
+            x_CF, z_factual, z_cf_I, z_dec = self.compute_counterfactual(batch=batch,
+                                        x_I=data_loader.dataset.x_I,
+                                        nodes_list=data_loader.dataset.nodes_list,
+                                        normalize=normalize)
 
-            # Encoder pass 2 CounterFactual
-            z_cf_I, _ = self.model.encoder(batch.x_i, batch.edge_index_i, edge_attr=batch.edge_attr_i,
-                                           return_mean=True, node_ids=batch.node_ids)
-
-            z_cf_I = z_cf_I.reshape(batch.num_graphs, -1)
+            z_factual_dict['all'].append(z_factual)
             z_counterfactual_dict['all'].append(z_cf_I.clone())
-
-            # Replace z_cf of the intervened variables with z_cf_I
-
-            for node_name, _ in data_loader.dataset.x_I.items():
-                i = data_loader.dataset.nodes_list.index(node_name)
-
-                z_factual[:, self.z_dim * i:self.z_dim * (i + 1)] = z_cf_I[:, self.z_dim * i : self.z_dim * (i + 1)]
-
-            z_factual = z_factual.reshape(-1, self.z_dim)  # [512, 1] [3000, 1]
-
-            x_CF, _ = self.model.decoder(z_factual, batch.edge_index_i, edge_attr=batch.edge_attr_i,
-                                         return_type='sample', node_ids=batch.node_ids)
-
-            # Not normalized
-            if normalize:
-                x_CF = x_CF.view(batch.num_graphs, -1)
-            else:
-                x_CF = self.scaler.inverse_transform(x_CF.view(batch.num_graphs, -1))
 
             u_factual = batch.u.view(batch.num_graphs, -1)
 
