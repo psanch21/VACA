@@ -99,6 +99,9 @@ To train our VACA algorithm  on each of the synthetic graphs with linear structu
 
 
 ```
+python main.py --dataset_file _params/dataset_german.yaml --model_file _params/model_vaca.yaml
+
+
 python main.py --dataset_file _params/dataset_adult.yaml --model_file _params/model_vaca.yaml
 python main.py --dataset_file _params/dataset_loan.yaml --model_file _params/model_vaca.yaml
 python main.py --dataset_file _params/dataset_chain.yaml --model_file _params/model_vaca.yaml

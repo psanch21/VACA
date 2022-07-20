@@ -89,7 +89,7 @@ class GermanSCM(HeterogeneousSCM):
                 'fair_attributes': fair_attributes,
                 'sens_attributes': sensitive_attributes}
 
-def prepare_german_datasets():
+def prepare_german_datasets(data_dir):
     nodes_list = ['sex',  # A
                   'age',  # C
                   'credit_amount',  # R
@@ -115,17 +115,19 @@ def prepare_german_datasets():
     print("generating folds and saving them")
     inx = 1
     kf = KFold(n_splits=5)
-    if not os.path.exists('_data/german_data'):
-        os.makedirs('_data/german_data')
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
 
     print("kf.split(X)", kf.split(X))
     for train_index, test_index in kf.split(X):
         X_train, X_test_valid = X.iloc[train_index], X.iloc[test_index]
         y_train, y_test_valid = y.iloc[train_index], y.iloc[test_index]
         data_train = pd.concat([X_train, y_train], axis=1).to_numpy()
-        np.save(f'_data/german_data/train_{inx}_X.npy', data_train)  # save
+        train_file = os.path.join(data_dir, f'train_{inx}_X.npy')
+        np.save(train_file, data_train)  # save
         data_test_valid = pd.concat([X_test_valid, y_test_valid], axis=1).to_numpy()
-        np.save(f'_data/german_data/test_valid_{inx}_X.npy', data_test_valid)  # save
+        test_valid_file = os.path.join(data_dir, f'test_valid_{inx}_X.npy')
+        np.save(test_valid_file, data_test_valid)  # save
         inx+=1
 
 
