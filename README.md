@@ -34,6 +34,7 @@ pip install setuptools==59.5.0
 pip install networkx==2.8.2
 pip install matplotlib==3.5.2
 pip install seaborn==0.11.2
+pip install aif360==0.4.0
 ```
 
 **Note**: The German dataset is not contained in this repository. The first time you try to train on the German dataset, 
@@ -98,7 +99,6 @@ To train our VACA algorithm  on each of the synthetic graphs with linear structu
 
 
 ```
-python main.py --dataset_file _params/dataset_adult.yaml --model_file _params/model_vaca.yaml
 python main.py --dataset_file _params/dataset_loan.yaml --model_file _params/model_vaca.yaml
 python main.py --dataset_file _params/dataset_chain.yaml --model_file _params/model_vaca.yaml
 python main.py --dataset_file _params/dataset_collider.yaml --model_file _params/model_vaca.yaml

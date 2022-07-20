@@ -1,7 +1,7 @@
 dataset:
   name: german
   params1:
-    data_dir: ../Data
+    data_dir: _data
     batch_size: 100 #  1024
     num_workers: 0
   params2: # total of 1000 datapoints

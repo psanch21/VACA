@@ -78,6 +78,12 @@ print(cfg['model']['params'])
 
 # %% Load dataset
 
+if cfg['dataset']['name'] in [Cte.GERMAN]:
+    data_dir = os.path.join(cfg['dataset']['params1']['data_dir'], 'german_data')
+    if not os.path.exists(data_dir):
+        from datasets.german import prepare_german_datasets
+        prepare_german_datasets(data_dir)
+
 data_module = None
 
 if cfg['dataset']['name'] in Cte.DATASET_LIST:
