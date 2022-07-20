@@ -34,6 +34,7 @@ pip install setuptools==59.5.0
 pip install networkx==2.8.2
 pip install matplotlib==3.5.2
 pip install seaborn==0.11.2
+pip install aif360==0.4.0
 ```
 
 **Note**: The German dataset is not contained in this repository. The first time you try to train on the German dataset, 

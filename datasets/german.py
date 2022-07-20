@@ -3,6 +3,10 @@ import os
 from datasets._heterogeneous import HeterogeneousSCM
 from utils.distributions import *
 
+from aif360.datasets import GermanDataset
+from sklearn.model_selection import KFold
+import pandas as pd
+
 
 class GermanSCM(HeterogeneousSCM):
 
@@ -84,3 +88,58 @@ class GermanSCM(HeterogeneousSCM):
         return {'unfair_attributes': unfair_attributes,
                 'fair_attributes': fair_attributes,
                 'sens_attributes': sensitive_attributes}
+
+def prepare_german_datasets():
+    nodes_list = ['sex',  # A
+                  'age',  # C
+                  'credit_amount',  # R
+                  'month',  # R repayment duration
+                  'housing=A151', 'housing=A152', 'housing=A153',  # S
+                  'savings=A61', 'savings=A62', 'savings=A63',
+                  'savings=A64', 'savings=A65',  # S savings
+                  'status=A11', 'status=A12',
+                  'status=A13', 'status=A14']  ## S
+
+    dataset = GermanDataset(protected_attribute_names=['sex'])
+    dataset.labels = np.where(dataset.labels == 2, 0, 1)  # this is for y
+
+    dataset.unfavorable_label = 0.0
+    dataset.metadata['protected_attribute_maps']
+
+    df = dataset.convert_to_dataframe()[0]
+
+    X = df[nodes_list]
+    y = df['credit']
+
+
+    print("generating folds and saving them")
+    inx = 1
+    kf = KFold(n_splits=5)
+    if not os.path.exists('_data/german_data'):
+        os.makedirs('_data/german_data')
+
+    print("kf.split(X)", kf.split(X))
+    for train_index, test_index in kf.split(X):
+        X_train, X_test_valid = X.iloc[train_index], X.iloc[test_index]
+        y_train, y_test_valid = y.iloc[train_index], y.iloc[test_index]
+        data_train = pd.concat([X_train, y_train], axis=1).to_numpy()
+        np.save(f'_data/german_data/train_{inx}_X.npy', data_train)  # save
+        data_test_valid = pd.concat([X_test_valid, y_test_valid], axis=1).to_numpy()
+        np.save(f'_data/german_data/test_valid_{inx}_X.npy', data_test_valid)  # save
+        inx+=1
+
+
+# def train_k_folds(kfold_idx):
+#         print(f"Loading train_{kfold_idx}_X.npy")
+#         data_train_fold = np.load(f'_data/german_kfold/train_{kfold_idx}_X.npy')
+#         data_test_valid_fold = np.load(f'_data/german_kfold/test_valid_{kfold_idx}_X.npy')
+#         X_train, y_train = data_train_fold[:, :-1], data_train_fold[:, -1]
+#         X_test_valid, y_test_valid = data_test_valid_fold[:, :-1], data_test_valid_fold[:, -1]
+#         X_train = pd.DataFrame(X_train)
+#         y_train = pd.DataFrame(y_train)
+#         X_test_valid = pd.DataFrame(X_test_valid)
+#         y_test_valid = pd.DataFrame(y_test_valid)
+#         return X_train, y_train, X_test_valid, y_test_valid
+
+
+

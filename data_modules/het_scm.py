@@ -72,7 +72,7 @@ class HeterogeneousSCMDataModule(pl.LightningDataModule):
 
             dataset_fn = AdultSCM
         elif dataset_name == Cte.GERMAN:
-            root_dir = os.path.join(data_dir, 'VACA')
+            root_dir = data_dir
             from datasets.german import GermanSCM
 
             self.train_dataset = GermanSCM(root_dir=root_dir,
